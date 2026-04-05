@@ -1,0 +1,32 @@
+# Environment variables
+.env
+*.env
+
+# Python
+__pycache__/
+
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+/static/
+/mediafiles/
+
+# Docker
+.docker/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+.AppleDouble
+
+
+note.md
