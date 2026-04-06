@@ -71,18 +71,16 @@ docker exec -it handson_python-postgres-1 psql -U sysdash_user -d sysdash
 
 ## Test
 ### test agent
-```
+```shell
+# prepare env
 cd /Users/seongmin/code/other/python/handson_python/agent
-
 pipenv --python 3.11
-
 pipenv install requests psutil
-
 pipenv install pytest --dev
-
 pipenv run which python
 pipenv run which pytest
 
+# run test
 pipenv run pytest tests.py -v -s
 ```
 
