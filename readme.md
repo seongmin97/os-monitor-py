@@ -12,13 +12,13 @@ Overall:
 
 Database:
 ```
-Server（被监控的服务器）
+Server（monitored server）
 ├── id
 ├── name          # "linux-server-01"
 ├── api_key       # Agent 认证用
 └── created_at
 
-MetricSnapshot（每次采集的快照）
+MetricSnapshot
 ├── id
 ├── server (FK)
 ├── cpu_percent
@@ -29,7 +29,7 @@ MetricSnapshot（每次采集的快照）
 ├── net_bytes_recv
 └── collected_at
 
-Alert（告警规则）
+Alert (Alert rule)
 ├── server (FK)
 ├── metric         # "cpu_percent"
 ├── threshold      # 90.0
@@ -38,17 +38,17 @@ Alert（告警规则）
 ```
 
 API Endpoints
-```
-POST /api/auth/token/          # 用户登录，返回 JWT
-POST /api/servers/             # 注册新服务器
-GET  /api/servers/             # 查看所有服务器
-
-POST /api/metrics/             # Agent 上报指标（用 api_key 认证）
-GET  /api/metrics/?server=1&hours=24  # 查询历史指标
-
-POST /api/alerts/              # 创建告警规则
-GET  /api/alerts/              # 查看告警规则
-```
+| Path | Method | Auth | Description |
+|------|--------|------|-------------|
+| /api/auth/register/ | POST | None | Register user, returns JWT |
+| /api/auth/token/ | POST | None | Login, obtain JWT |
+| /api/auth/token/refresh/ | POST | Refresh token | Refresh access token |
+| /api/servers/ | GET/POST | JWT | List / create servers |
+| /api/metrics/ | POST | API Key | Agent reports metrics |
+| /api/metrics/history/ | GET | JWT | Historical metrics (paginated) |
+| /api/metrics/latest/ | GET | JWT | Latest metric entry |
+| /api/alerts/rules/ | GET/POST | JWT | Alert rules |
+| /api/alerts/events/ | GET | JWT | Alert event records |
 
 
 ## Superuser
