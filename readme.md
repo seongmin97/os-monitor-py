@@ -1,4 +1,4 @@
-This project build a backend OS monitor with django framework.
+This project build a real-time server monitor platform with django framework.
 
 ## Framework
 Overall:
