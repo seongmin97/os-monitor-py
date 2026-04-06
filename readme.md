@@ -55,6 +55,20 @@ GET  /api/alerts/              # 查看告警规则
  - admin:     admin
  - password:  admin123
 
+## Run
+```shell
+# first time
+docker compose down -v
+docker compose up --build
+
+docker compose up
+docker ps
+docker compose down
+
+# check postgre database
+docker exec -it handson_python-postgres-1 psql -U sysdash_user -d sysdash
+```
+
 
 # Other topics
 ## What is Celery?

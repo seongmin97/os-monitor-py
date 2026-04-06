@@ -8,7 +8,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sysdash_user}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sysdash_user} -d ${POSTGRES_DB:-sysdash}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -26,6 +26,7 @@ services:
       context: ./sysdash
     env_file: .env
     environment:
+      # docker do DNS resolution automatically. Same as redis
       POSTGRES_HOST: postgres
       REDIS_URL: redis://redis:6379
     ports:
@@ -36,8 +37,10 @@ services:
       redis:
         condition: service_healthy
     command: >
-      sh -c "python manage.py migrate &&
+      sh -c "python manage.py makemigrations servers metrics alerts &&
+             python manage.py migrate &&
              python manage.py collectstatic --noinput &&
+             python manage.py ensure_server &&
              daphne -b 0.0.0.0 -p 8000 sysdash.asgi:application"
 
   celery:
