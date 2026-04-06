@@ -1,4 +1,4 @@
-This project build the basic backend system with django framework.
+This project build a backend OS monitor with django framework.
 
 ## Framework
 Overall:
