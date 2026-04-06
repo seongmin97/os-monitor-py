@@ -69,27 +69,20 @@ docker compose down
 docker exec -it handson_python-postgres-1 psql -U sysdash_user -d sysdash
 ```
 
-
-# Other topics
-## What is Celery?
-Celery is a distributed task queue for Python. It lets you run tasks asynchronously in the background, outside of the main web request/response cycle.
-
-### Why you need it:
-
-Without Celery, if a user triggers something slow (e.g., sending emails, generating a report, collecting system metrics), the HTTP request would block and hang until it finishes. With Celery, you instead queue the task and respond to the user immediately — Celery picks it up and runs it separately.
-
-### How it works in your project:
-
+## Test
+### test agent
 ```
-Browser → Django (HTTP) → queues task → Redis (message broker)
-                                              ↓
-                                        Celery Worker
-                                        (runs the task)
-                                              ↓
-                                        PostgreSQL (stores results)
-```
- - Redis acts as the broker — it holds the queue of pending tasks
- - Celery worker (celery -A sysdash worker) continuously polls Redis and executes tasks
- - Results/state can be stored back in PostgreSQL or Redis
+cd /Users/seongmin/code/other/python/handson_python/agent
 
-Celery likely handles things like periodically collecting system metrics from the linux-server agent and saving them to the database.
+pipenv --python 3.11
+
+pipenv install requests psutil
+
+pipenv install pytest --dev
+
+pipenv run which python
+pipenv run which pytest
+
+pipenv run pytest tests.py -v -s
+```
+

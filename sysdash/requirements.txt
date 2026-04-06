@@ -8,3 +8,4 @@ celery>=5.3
 redis>=5.0
 psycopg2-binary>=2.9
 daphne>=4.0
+psutil>=6.0
