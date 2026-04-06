@@ -22,7 +22,7 @@ class MetricCreateView(generics.CreateAPIView):
 
 
 class MetricListView(generics.ListAPIView):
-    """Returns metric history for a given server. Requires JWT auth."""
+    """Returns paginated metric history for a given server. Requires JWT auth."""
 
     serializer_class = MetricSnapshotSerializer
 
@@ -35,3 +35,20 @@ class MetricListView(generics.ListAPIView):
         if server_id:
             qs = qs.filter(server_id=server_id)
         return qs
+
+
+class MetricLatestView(generics.RetrieveAPIView):
+    """Returns the single most recent snapshot for a server. Requires JWT auth."""
+
+    serializer_class = MetricSnapshotSerializer
+
+    def get_object(self):
+        server_id = self.request.query_params.get("server")
+        qs = MetricSnapshot.objects.all()
+        if server_id:
+            qs = qs.filter(server_id=server_id)
+        snapshot = qs.first()
+        if snapshot is None:
+            from rest_framework.exceptions import NotFound
+            raise NotFound("No metrics found for this server.")
+        return snapshot
