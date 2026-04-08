@@ -55,7 +55,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    command: celery -A sysdash worker --loglevel=info
+    command: celery -A sysdash worker --beat --loglevel=info
 
   linux-server:
     build:

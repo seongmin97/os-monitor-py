@@ -2,6 +2,8 @@ import os
 from pathlib import Path
 from datetime import timedelta
 
+from celery.schedules import crontab
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-secret-key-change-in-production")
@@ -84,6 +86,15 @@ CELERY_BROKER_URL = REDIS_URL
 CELERY_RESULT_BACKEND = REDIS_URL
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
+
+METRIC_SNAPSHOT_MAX_ROWS = int(os.environ.get("METRIC_SNAPSHOT_MAX_ROWS", "4000"))
+
+CELERY_BEAT_SCHEDULE = {
+    "prune-metric-snapshots": {
+        "task": "apps.metrics.tasks.prune_metric_snapshots",
+        "schedule": crontab(minute="*/5"),
+    },
+}
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
