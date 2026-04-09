@@ -25,6 +25,7 @@ INSTALLED_APPS = [
     "channels",
     "corsheaders",
     # local apps
+    "apps.users",
     "apps.servers",
     "apps.metrics",
     "apps.alerts",

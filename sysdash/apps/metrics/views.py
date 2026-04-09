@@ -28,7 +28,10 @@ class MetricListView(generics.ListAPIView):
 
     def get_queryset(self):
         server_id = self.request.query_params.get("server")
-        hours = int(self.request.query_params.get("hours", 24))
+        try:
+            hours = max(1, int(self.request.query_params.get("hours", 24)))
+        except (ValueError, TypeError):
+            hours = 24
         since = timezone.now() - timedelta(hours=hours)
 
         qs = MetricSnapshot.objects.filter(collected_at__gte=since).order_by("collected_at")
