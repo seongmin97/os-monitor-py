@@ -17,7 +17,7 @@ log = logging.getLogger(__name__)
 
 API_URL = os.environ.get("DJANGO_URL", "http://django:8000")
 API_KEY = os.environ.get("SERVER_API_KEY", "")
-INTERVAL = int(os.environ.get("COLLECT_INTERVAL", "30"))
+INTERVAL = int(os.environ.get("COLLECT_INTERVAL", "10"))
 
 
 def collect_metrics() -> dict:

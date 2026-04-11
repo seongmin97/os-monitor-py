@@ -1,9 +1,11 @@
 from django.contrib import admin
 from django.urls import path, include
+from django.views.generic import TemplateView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from apps.users.views import RegisterView
 
 urlpatterns = [
+    path("dashboard/", TemplateView.as_view(template_name="dashboard.html"), name="dashboard"),
     path("admin/", admin.site.urls),
     path("api/auth/register/", RegisterView.as_view(), name="register"),
     path("api/auth/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),

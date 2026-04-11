@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sysdash Monitoring</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --surface: #1a2332;
+      --border: #2d3a4f;
+      --text: #e7ecf3;
+      --muted: #8b9cb3;
+      --accent: #3d8bfd;
+      --ok: #34c759;
+      --warn: #ff9f0a;
+      --danger: #ff453a;
+      --toast-bg: #252f42;
+      --font: "Segoe UI", system-ui, -apple-system, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    header {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.25rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 1.5rem;
+    }
+    section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+    section h2 {
+      margin: 0 0 1rem;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    label {
+      display: block;
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 0.35rem;
+    }
+    input, select, button {
+      font: inherit;
+    }
+    input {
+      width: 100%;
+      max-width: 280px;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--text);
+    }
+    input:focus {
+      outline: 2px solid var(--accent);
+      outline-offset: 1px;
+    }
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: flex-end;
+      margin-bottom: 1rem;
+    }
+    .field { flex: 0 0 auto; }
+    button {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    button:hover { filter: brightness(1.08); }
+    button.secondary {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    button.secondary:hover { background: var(--border); }
+    .hint { font-size: 0.8rem; color: var(--muted); margin-top: 0.5rem; }
+    .error { color: var(--danger); font-size: 0.9rem; margin-top: 0.5rem; }
+    .hidden { display: none !important; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    th, td {
+      text-align: left;
+      padding: 0.65rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+    th { color: var(--muted); font-weight: 500; }
+    tr:last-child td { border-bottom: none; }
+    .badge {
+      display: inline-block;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .badge.on { background: rgba(52, 199, 89, 0.2); color: var(--ok); }
+    .badge.off { background: rgba(255, 69, 58, 0.2); color: var(--danger); }
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 1rem;
+    }
+    .metric-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem;
+    }
+    .metric-card .label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    .metric-card .value { font-size: 1.5rem; font-weight: 700; margin-top: 0.25rem; }
+    .metric-card .unit { font-size: 0.85rem; color: var(--muted); font-weight: 400; }
+    .ws-status {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 1rem;
+    }
+    .ws-status.live { color: var(--ok); }
+    .ws-status.dead { color: var(--warn); }
+    #toast-container {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      max-width: min(380px, calc(100vw - 2rem));
+      pointer-events: none;
+    }
+    .toast {
+      pointer-events: auto;
+      background: var(--toast-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.9rem 1rem;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+      animation: toast-in 0.25s ease;
+    }
+    .toast.fade-out { animation: toast-out 0.3s ease forwards; }
+    .toast-title { font-weight: 600; margin-bottom: 0.25rem; color: var(--warn); }
+    .toast-body { font-size: 0.9rem; color: var(--text); }
+    @keyframes toast-in {
+      from { opacity: 0; transform: translateX(12px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes toast-out {
+      to { opacity: 0; transform: translateX(12px); }
+    }
+    .auth-bar {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .auth-bar .user-label { color: var(--muted); font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <div id="toast-container" aria-live="polite"></div>
+  <header>
+    <h1>Sysdash Monitoring</h1>
+  </header>
+  <main>
+    <section id="auth-section">
+      <h2>Sign in</h2>
+      <p class="hint">No account yet? Register below or use <code>/api/auth/register/</code>.</p>
+      <div id="login-panel">
+        <div class="row">
+          <div class="field">
+            <label for="username">Username</label>
+            <input id="username" type="text" autocomplete="username" />
+          </div>
+          <div class="field">
+            <label for="password">Password</label>
+            <input id="password" type="password" autocomplete="current-password" />
+          </div>
+          <div class="field">
+            <button type="button" id="btn-login">Sign in</button>
+          </div>
+        </div>
+        <div id="login-error" class="error hidden"></div>
+      </div>
+      <details style="margin-top: 1rem;">
+        <summary style="cursor: pointer; color: var(--muted);">Create an account</summary>
+        <div class="row" style="margin-top: 1rem;">
+          <div class="field">
+            <label for="reg-username">Username</label>
+            <input id="reg-username" type="text" autocomplete="username" />
+          </div>
+          <div class="field">
+            <label for="reg-email">Email</label>
+            <input id="reg-email" type="email" autocomplete="email" />
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label for="reg-password">Password</label>
+            <input id="reg-password" type="password" autocomplete="new-password" />
+          </div>
+          <div class="field">
+            <label for="reg-password2">Confirm password</label>
+            <input id="reg-password2" type="password" autocomplete="new-password" />
+          </div>
+          <div class="field">
+            <button type="button" id="btn-register" class="secondary">Register and sign in</button>
+          </div>
+        </div>
+        <div id="register-error" class="error hidden"></div>
+      </details>
+    </section>
+
+    <section id="dashboard-section" class="hidden">
+      <h2>Session</h2>
+      <div class="auth-bar">
+        <span class="user-label">Signed in as <strong id="logged-user">—</strong></span>
+        <button type="button" id="btn-logout" class="secondary">Sign out</button>
+      </div>
+    </section>
+
+    <section id="servers-section" class="hidden">
+      <h2>Servers</h2>
+      <div class="row">
+        <div class="field">
+          <label for="server-select">Live metrics for</label>
+          <select id="server-select"></select>
+        </div>
+      </div>
+      <div style="overflow-x: auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Description</th>
+              <th>Status</th>
+              <th>Created</th>
+            </tr>
+          </thead>
+          <tbody id="servers-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="metrics-section" class="hidden">
+      <h2>Live metrics</h2>
+      <p id="ws-status" class="ws-status dead">WebSocket: disconnected</p>
+      <div id="metrics-grid" class="metrics-grid"></div>
+      <p id="metrics-empty" class="hint">Waiting for metric updates for this server…</p>
+    </section>
+
+    <section id="alerts-section" class="hidden">
+      <h2>Recent alert events (up to 10)</h2>
+      <div style="overflow-x: auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>Rule ID</th>
+              <th>Metric value</th>
+              <th>Triggered</th>
+              <th>Resolved</th>
+            </tr>
+          </thead>
+          <tbody id="alerts-body"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script>
+(function () {
+  const ALERT_POLL_MS = 4000;
+  const TOAST_MS = 3000;
+
+  let ws = null;
+  let alertTimer = null;
+  let alertsInitialized = false;
+  const seenEventIds = new Set();
+
+  function getAccess() { return sessionStorage.getItem("access"); }
+  function getRefresh() { return sessionStorage.getItem("refresh"); }
+  function setTokens(access, refresh) {
+    if (access) sessionStorage.setItem("access", access);
+    if (refresh) sessionStorage.setItem("refresh", refresh);
+  }
+  function clearTokens() {
+    sessionStorage.removeItem("access");
+    sessionStorage.removeItem("refresh");
+    sessionStorage.removeItem("username");
+  }
+
+  async function refreshAccess() {
+    const refresh = getRefresh();
+    if (!refresh) return false;
+    const r = await fetch("/api/auth/token/refresh/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh }),
+    });
+    if (!r.ok) return false;
+    const data = await r.json();
+    setTokens(data.access, null);
+    return true;
+  }
+
+  async function apiFetch(url, options = {}) {
+    const headers = Object.assign(
+      { "Content-Type": "application/json" },
+      options.headers || {}
+    );
+    const token = getAccess();
+    if (token) headers["Authorization"] = "Bearer " + token;
+
+    let res = await fetch(url, Object.assign({}, options, { headers }));
+
+    if (res.status === 401 && getRefresh()) {
+      const ok = await refreshAccess();
+      if (ok) {
+        headers["Authorization"] = "Bearer " + getAccess();
+        res = await fetch(url, Object.assign({}, options, { headers }));
+      }
+    }
+    return res;
+  }
+
+  function showError(el, msg) {
+    el.textContent = msg || "";
+    el.classList.toggle("hidden", !msg);
+  }
+
+  function showToast(title, body) {
+    const container = document.getElementById("toast-container");
+    const node = document.createElement("div");
+    node.className = "toast";
+    node.innerHTML =
+      '<div class="toast-title"></div><div class="toast-body"></div>';
+    node.querySelector(".toast-title").textContent = title;
+    node.querySelector(".toast-body").textContent = body;
+    container.appendChild(node);
+    setTimeout(function () {
+      node.classList.add("fade-out");
+      setTimeout(function () { node.remove(); }, 300);
+    }, TOAST_MS);
+  }
+
+  function formatTime(iso) {
+    if (!iso) return "—";
+    try {
+      const d = new Date(iso);
+      return d.toLocaleString();
+    } catch (e) {
+      return iso;
+    }
+  }
+
+  function setWsStatus(connected, detail) {
+    const el = document.getElementById("ws-status");
+    el.className = "ws-status " + (connected ? "live" : "dead");
+    el.textContent = connected
+      ? "WebSocket: connected · " + (detail || "")
+      : "WebSocket: " + (detail || "disconnected");
+  }
+
+  function closeWs() {
+    if (ws) {
+      try { ws.close(); } catch (e) {}
+      ws = null;
+    }
+    setWsStatus(false, "disconnected");
+  }
+
+  function connectWs(serverId) {
+    closeWs();
+    if (!serverId) return;
+    const proto = location.protocol === "https:" ? "wss:" : "ws:";
+    const url = proto + "//" + location.host + "/ws/metrics/" + serverId + "/";
+    ws = new WebSocket(url);
+
+    ws.onopen = function () {
+      setWsStatus(true, "streaming server " + serverId);
+    };
+    ws.onclose = function () {
+      setWsStatus(false, "disconnected");
+    };
+    ws.onerror = function () {
+      setWsStatus(false, "connection error");
+    };
+    ws.onmessage = function (ev) {
+      try {
+        const data = JSON.parse(ev.data);
+        renderMetrics(data);
+      } catch (e) {
+        console.warn("metric parse", e);
+      }
+    };
+  }
+
+  function renderMetrics(data) {
+    const grid = document.getElementById("metrics-grid");
+    const empty = document.getElementById("metrics-empty");
+    empty.classList.add("hidden");
+    const fields = [
+      ["CPU", data.cpu_percent, "%"],
+      ["Memory", data.memory_percent, "%"],
+      ["Memory used", data.memory_used_mb, " MB"],
+      ["Disk", data.disk_percent, "%"],
+      ["Net sent", data.net_bytes_sent, " B"],
+      ["Net recv", data.net_bytes_recv, " B"],
+    ];
+    grid.innerHTML = fields
+      .map(function (f) {
+        const v = f[1];
+        const display = v === null || v === undefined ? "—" : String(v);
+        return (
+          '<div class="metric-card"><div class="label">' +
+          f[0] +
+          '</div><div class="value">' +
+          display +
+          '<span class="unit"> ' +
+          f[2] +
+          "</span></div></div>"
+        );
+      })
+      .join("");
+    const footer = document.createElement("div");
+    footer.style.gridColumn = "1 / -1";
+    footer.className = "hint";
+    footer.textContent = "Collected at: " + formatTime(data.collected_at);
+    grid.appendChild(footer);
+  }
+
+  function renderServers(servers) {
+    const body = document.getElementById("servers-body");
+    const sel = document.getElementById("server-select");
+    body.innerHTML = "";
+    sel.innerHTML = "";
+    const opt0 = document.createElement("option");
+    opt0.value = "";
+    opt0.textContent = "Select a server…";
+    sel.appendChild(opt0);
+
+    servers.forEach(function (s) {
+      const tr = document.createElement("tr");
+      tr.innerHTML =
+        "<td>" +
+        escapeHtml(s.name) +
+        "</td><td>" +
+        escapeHtml(s.description || "—") +
+        '</td><td><span class="badge ' +
+        (s.is_active ? "on" : "off") +
+        '">' +
+        (s.is_active ? "Active" : "Inactive") +
+        "</span></td><td>" +
+        formatTime(s.created_at) +
+        "</td>";
+      body.appendChild(tr);
+
+      const opt = document.createElement("option");
+      opt.value = String(s.id);
+      opt.textContent = s.name + " (#" + s.id + ")";
+      sel.appendChild(opt);
+    });
+
+    sel.onchange = function () {
+      const id = sel.value;
+      document.getElementById("metrics-section").classList.toggle("hidden", !id);
+      document.getElementById("metrics-grid").innerHTML = "";
+      document.getElementById("metrics-empty").classList.remove("hidden");
+      if (id) {
+        connectWs(id);
+        fetchLatestMetric(id);
+      } else {
+        closeWs();
+      }
+    };
+
+    if (servers.length && sel.options.length > 1) {
+      sel.selectedIndex = 1;
+      sel.dispatchEvent(new Event("change"));
+    } else {
+      document.getElementById("metrics-section").classList.remove("hidden");
+      closeWs();
+    }
+  }
+
+  function escapeHtml(s) {
+    const d = document.createElement("div");
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  async function fetchLatestMetric(serverId) {
+    const res = await apiFetch("/api/metrics/latest/?server=" + encodeURIComponent(serverId));
+    if (res.ok) {
+      const data = await res.json();
+      renderMetrics(data);
+    }
+  }
+
+  async function loadServers() {
+    const res = await apiFetch("/api/servers/");
+    if (!res.ok) {
+      showError(document.getElementById("login-error"), "Failed to load servers: " + res.status);
+      return;
+    }
+    const data = await res.json();
+    const list = data.results || data;
+    renderServers(Array.isArray(list) ? list : []);
+    document.getElementById("servers-section").classList.remove("hidden");
+    document.getElementById("metrics-section").classList.remove("hidden");
+  }
+
+  function renderAlertRows(events) {
+    const body = document.getElementById("alerts-body");
+    body.innerHTML = "";
+    const top = events.slice(0, 10);
+    top.forEach(function (e) {
+      const tr = document.createElement("tr");
+      tr.innerHTML =
+        "<td>" +
+        e.alert +
+        "</td><td>" +
+        e.metric_value +
+        "</td><td>" +
+        formatTime(e.triggered_at) +
+        "</td><td>" +
+        (e.resolved_at ? formatTime(e.resolved_at) : "—") +
+        "</td>";
+      body.appendChild(tr);
+    });
+  }
+
+  async function pollAlerts() {
+    const res = await apiFetch("/api/alerts/events/");
+    if (!res.ok) return;
+    const data = await res.json();
+    const results = data.results || [];
+    renderAlertRows(results);
+
+    if (!alertsInitialized) {
+      results.forEach(function (e) { seenEventIds.add(e.id); });
+      alertsInitialized = true;
+    } else {
+      const newOnes = [];
+      for (let i = 0; i < results.length; i++) {
+        const e = results[i];
+        if (!seenEventIds.has(e.id)) {
+          seenEventIds.add(e.id);
+          newOnes.push(e);
+        }
+      }
+      newOnes
+        .sort(function (a, b) { return a.id - b.id; })
+        .forEach(function (e) {
+          showToast(
+            "New alert event",
+            "Rule #" + e.alert + " · value " + e.metric_value + " · " + formatTime(e.triggered_at)
+          );
+        });
+    }
+  }
+
+  function startAlertPolling() {
+    stopAlertPolling();
+    pollAlerts();
+    alertTimer = setInterval(pollAlerts, ALERT_POLL_MS);
+  }
+
+  function stopAlertPolling() {
+    if (alertTimer) {
+      clearInterval(alertTimer);
+      alertTimer = null;
+    }
+    alertsInitialized = false;
+    seenEventIds.clear();
+  }
+
+  function showDashboard(username) {
+    document.getElementById("auth-section").classList.add("hidden");
+    document.getElementById("dashboard-section").classList.remove("hidden");
+    document.getElementById("alerts-section").classList.remove("hidden");
+    document.getElementById("logged-user").textContent = username || "User";
+    loadServers();
+    startAlertPolling();
+  }
+
+  function showLogin() {
+    stopAlertPolling();
+    closeWs();
+    clearTokens();
+    document.getElementById("auth-section").classList.remove("hidden");
+    document.getElementById("dashboard-section").classList.add("hidden");
+    document.getElementById("servers-section").classList.add("hidden");
+    document.getElementById("metrics-section").classList.add("hidden");
+    document.getElementById("alerts-section").classList.add("hidden");
+    document.getElementById("servers-body").innerHTML = "";
+    document.getElementById("alerts-body").innerHTML = "";
+  }
+
+  document.getElementById("btn-login").onclick = async function () {
+    const u = document.getElementById("username").value.trim();
+    const p = document.getElementById("password").value;
+    showError(document.getElementById("login-error"), "");
+    if (!u || !p) {
+      showError(document.getElementById("login-error"), "Enter username and password");
+      return;
+    }
+    const res = await fetch("/api/auth/token/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: u, password: p }),
+    });
+    if (!res.ok) {
+      let msg = "Sign-in failed (" + res.status + ")";
+      try {
+        const err = await res.json();
+        if (err.detail) msg = String(err.detail);
+      } catch (e) {}
+      showError(document.getElementById("login-error"), msg);
+      return;
+    }
+    const data = await res.json();
+    setTokens(data.access, data.refresh);
+    sessionStorage.setItem("username", u);
+    showDashboard(u);
+  };
+
+  document.getElementById("btn-register").onclick = async function () {
+    const u = document.getElementById("reg-username").value.trim();
+    const email = document.getElementById("reg-email").value.trim();
+    const p = document.getElementById("reg-password").value;
+    const p2 = document.getElementById("reg-password2").value;
+    showError(document.getElementById("register-error"), "");
+    if (!u || !email || !p) {
+      showError(document.getElementById("register-error"), "Fill in all fields");
+      return;
+    }
+    if (p !== p2) {
+      showError(document.getElementById("register-error"), "Passwords do not match");
+      return;
+    }
+    const res = await fetch("/api/auth/register/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username: u,
+        email: email,
+        password: p,
+        password2: p2,
+      }),
+    });
+    if (!res.ok) {
+      let msg = "Registration failed";
+      try {
+        const err = await res.json();
+        msg = JSON.stringify(err);
+      } catch (e) {}
+      showError(document.getElementById("register-error"), msg);
+      return;
+    }
+    const data = await res.json();
+    setTokens(data.access, data.refresh);
+    sessionStorage.setItem("username", u);
+    showDashboard(u);
+  };
+
+  document.getElementById("btn-logout").onclick = function () {
+    showLogin();
+  };
+
+  if (getAccess()) {
+    showDashboard(sessionStorage.getItem("username") || "");
+  }
+})();
+  </script>
+</body>
+</html>

@@ -51,9 +51,13 @@ API Endpoints
 | /api/alerts/events/ | GET | JWT | Alert event records |
 
 
-## Superuser
- - admin:     admin
+## Users
+### Superuser
+ - username:  admin
  - password:  admin123
+### User
+ - username:  demouser
+ - password:  Demo1234!
 
 ## Run
 ```shell
