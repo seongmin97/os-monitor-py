@@ -74,6 +74,9 @@ docker compose -f 'docker-compose.yml' up -d --build 'postgres'
 
 # check postgre database
 docker exec -it handson_python-postgres-1 psql -U sysdash_user -d sysdash
+
+# apply a change 
+docker compose build django && docker compose up -d
 ```
 
 ## Test

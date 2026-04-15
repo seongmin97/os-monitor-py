@@ -301,9 +301,9 @@
         <table>
           <thead>
             <tr>
-              <th>Rule ID</th>
-              <th>Metric value</th>
               <th>Triggered</th>
+              <th>Metric value</th>
+              <th>Rule ID</th>
               <th>Resolved</th>
             </tr>
           </thead>
@@ -570,11 +570,11 @@
       const tr = document.createElement("tr");
       tr.innerHTML =
         "<td>" +
-        e.alert +
+        formatTime(e.triggered_at) +
         "</td><td>" +
         e.metric_value +
         "</td><td>" +
-        formatTime(e.triggered_at) +
+        e.alert +
         "</td><td>" +
         (e.resolved_at ? formatTime(e.resolved_at) : "—") +
         "</td>";
