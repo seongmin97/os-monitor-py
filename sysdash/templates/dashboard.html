@@ -186,6 +186,21 @@
       flex-wrap: wrap;
     }
     .auth-bar .user-label { color: var(--muted); font-size: 0.9rem; }
+    .alerts-pager {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-top: 1rem;
+      flex-wrap: wrap;
+    }
+    .alerts-pager #alerts-pager-info {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+    .alerts-pager button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
   </style>
 </head>
 <body>
@@ -281,7 +296,7 @@
     </section>
 
     <section id="alerts-section" class="hidden">
-      <h2>Recent alert events (up to 10)</h2>
+      <h2>Alert events</h2>
       <div style="overflow-x: auto;">
         <table>
           <thead>
@@ -295,6 +310,11 @@
           <tbody id="alerts-body"></tbody>
         </table>
       </div>
+      <div class="alerts-pager">
+        <button type="button" id="btn-alerts-prev" class="secondary">Previous</button>
+        <span id="alerts-pager-info"></span>
+        <button type="button" id="btn-alerts-next" class="secondary">Next</button>
+      </div>
     </section>
   </main>
 
@@ -302,10 +322,12 @@
 (function () {
   const ALERT_POLL_MS = 4000;
   const TOAST_MS = 3000;
+  const ALERTS_PAGE_SIZE = 5;
 
   let ws = null;
   let alertTimer = null;
   let alertsInitialized = false;
+  let alertsPage = 1;
   const seenEventIds = new Set();
 
   function getAccess() { return sessionStorage.getItem("access"); }
@@ -544,8 +566,7 @@
   function renderAlertRows(events) {
     const body = document.getElementById("alerts-body");
     body.innerHTML = "";
-    const top = events.slice(0, 10);
-    top.forEach(function (e) {
+    events.forEach(function (e) {
       const tr = document.createElement("tr");
       tr.innerHTML =
         "<td>" +
@@ -561,20 +582,65 @@
     });
   }
 
-  async function pollAlerts() {
-    const res = await apiFetch("/api/alerts/events/");
-    if (!res.ok) return;
-    const data = await res.json();
-    const results = data.results || [];
+  function updateAlertsPager(data) {
+    const count = typeof data.count === "number" ? data.count : 0;
+    const totalPages = count === 0 ? 1 : Math.ceil(count / ALERTS_PAGE_SIZE);
+    document.getElementById("alerts-pager-info").textContent =
+      "Page " + alertsPage + " of " + totalPages + " · " + count + " event(s)";
+    document.getElementById("btn-alerts-prev").disabled = !data.previous;
+    document.getElementById("btn-alerts-next").disabled = !data.next;
+  }
+
+  function alertsEventsUrl(page) {
+    return "/api/alerts/events/?page=" + encodeURIComponent(String(page));
+  }
+
+  async function pollAlerts(isRetryAfter404) {
+    const requestedPage = alertsPage;
+    const buildUrl = alertsEventsUrl;
+
+    let tableData;
+    let firstPageResults;
+
+    if (requestedPage === 1) {
+      const res = await apiFetch(buildUrl(1));
+      if (res.status === 404) return;
+      if (!res.ok) return;
+      tableData = await res.json();
+      firstPageResults = tableData.results || [];
+    } else {
+      const pair = await Promise.all([
+        apiFetch(buildUrl(requestedPage)),
+        apiFetch(buildUrl(1)),
+      ]);
+      const resT = pair[0];
+      const resF = pair[1];
+      if (resT.status === 404) {
+        if (isRetryAfter404) return;
+        alertsPage = 1;
+        return pollAlerts(true);
+      }
+      if (!resT.ok) return;
+      tableData = await resT.json();
+      if (resF.ok) {
+        const d1 = await resF.json();
+        firstPageResults = d1.results || [];
+      } else {
+        firstPageResults = [];
+      }
+    }
+
+    const results = tableData.results || [];
     renderAlertRows(results);
+    updateAlertsPager(tableData);
 
     if (!alertsInitialized) {
-      results.forEach(function (e) { seenEventIds.add(e.id); });
+      firstPageResults.forEach(function (e) { seenEventIds.add(e.id); });
       alertsInitialized = true;
     } else {
       const newOnes = [];
-      for (let i = 0; i < results.length; i++) {
-        const e = results[i];
+      for (let i = 0; i < firstPageResults.length; i++) {
+        const e = firstPageResults[i];
         if (!seenEventIds.has(e.id)) {
           seenEventIds.add(e.id);
           newOnes.push(e);
@@ -602,9 +668,23 @@
       clearInterval(alertTimer);
       alertTimer = null;
     }
+    alertsPage = 1;
     alertsInitialized = false;
     seenEventIds.clear();
   }
+
+  document.getElementById("btn-alerts-prev").onclick = function () {
+    if (!document.getElementById("btn-alerts-prev").disabled) {
+      alertsPage--;
+      pollAlerts();
+    }
+  };
+  document.getElementById("btn-alerts-next").onclick = function () {
+    if (!document.getElementById("btn-alerts-next").disabled) {
+      alertsPage++;
+      pollAlerts();
+    }
+  };
 
   function showDashboard(username) {
     document.getElementById("auth-section").classList.add("hidden");
